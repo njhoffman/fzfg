@@ -1,9 +1,10 @@
 default:
     @just --list
 
-# Build the fzfg binary to ./dist/fzfg
+# Build all binaries to ./dist/
 build:
     go build -ldflags='-s -w' -o ./dist/fzfg ./cmd/fzfg/
+    go build -ldflags='-s -w' -o ./dist/fzf-repl ./cmd/fzf-repl/
 
 # Run fzfg with arguments (e.g., just run -c fd_files -o preview)
 run *ARGS:
@@ -32,6 +33,10 @@ lint:
 
 lint-verbose:
     golangci-lint run --verbose ./...
+
+# Run fzf-repl
+repl *ARGS:
+    go run ./cmd/fzf-repl/ {{ ARGS }}
 
 # Format Go source files
 fmt:

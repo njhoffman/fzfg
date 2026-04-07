@@ -4,7 +4,19 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
 builds:
-  - main: ./cmd/fzfg/
+  - id: fzfg
+    main: ./cmd/fzfg/
+    env:
+        - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+  - id: fzf-repl
+    main: ./cmd/fzf-repl/
     env:
         - CGO_ENABLED=0
     goos:
