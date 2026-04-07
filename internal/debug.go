@@ -103,6 +103,19 @@ func PrintDebug(result *InitResult, modes map[string]bool) {
 		}
 	}
 
+	if modes["keybinds"] {
+		fzfrcPath := ResolveFzfrcPath()
+		binds := CollectAllBindings(fzfrcPath, result.ConfigFile)
+		fmt.Fprint(w, FormatKeybindPreview(binds))
+	}
+
+	if modes["available-keys"] {
+		fzfrcPath := ResolveFzfrcPath()
+		binds := CollectAllBindings(fzfrcPath, result.ConfigFile)
+		available := AvailableKeys(binds)
+		fmt.Fprint(w, FormatAvailableKeys(available))
+	}
+
 	if modes["trace"] {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, headerStyle.Render("Config Trace"))
