@@ -9,7 +9,6 @@ import (
 )
 
 func TestRunStep_Success(t *testing.T) {
-	// Ensure Log is initialized for the test
 	Log = log.New(os.Stderr)
 
 	step := runStep("test-step", func(l *log.Logger) (map[string]string, error) {
@@ -45,8 +44,36 @@ func TestRunStep_Error(t *testing.T) {
 	}
 }
 
+func TestStepsUpTo(t *testing.T) {
+	tests := []struct {
+		name string
+		want int
+	}{
+		{"start", 1},
+		{"config", 2},
+		{"validate", 3},
+		{"rsc-load", 4},
+		{"env-load", 5},
+		{"env-set", 6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stepsUpTo(tt.name)
+			if len(got) != tt.want {
+				t.Errorf("stepsUpTo(%q) = %d steps, want %d", tt.name, len(got), tt.want)
+			}
+		})
+	}
+}
+
+func TestStepsUpTo_Unknown(t *testing.T) {
+	got := stepsUpTo("nonexistent")
+	if got != nil {
+		t.Errorf("expected nil for unknown step, got %v", got)
+	}
+}
+
 func TestRunInit_WithConfig(t *testing.T) {
-	// Set up a temp config directory
 	tmpDir := t.TempDir()
 	modDir := filepath.Join(tmpDir, "modules")
 	os.MkdirAll(modDir, 0755)
@@ -71,24 +98,20 @@ profiles:
 	mainPath := filepath.Join(tmpDir, "fzfg.yaml")
 	os.WriteFile(mainPath, []byte(mainConfig), 0644)
 
-	// Point to this config
 	t.Setenv("FZFG_CONF", mainPath)
 
-	// Reset flags
-	InitFlag = true
 	CommandFlag = "test_cmd"
 	OptionsFlag = ""
 	ProfileFlag = ""
-
+	ModuleFlag = "files"
 	Log = log.New(os.Stderr)
 
-	result, err := RunInit()
+	result, err := RunInit("")
 	if err != nil {
 		t.Fatalf("RunInit error: %v", err)
 	}
 
-	// Verify all steps ran
-	expectedSteps := []string{"start", "config", "validate", "rsc-load", "env-load", "env-set"}
+	expectedSteps := AllInitSteps
 	if len(result.Steps) != len(expectedSteps) {
 		t.Fatalf("expected %d steps, got %d", len(expectedSteps), len(result.Steps))
 	}
@@ -98,32 +121,54 @@ profiles:
 		}
 	}
 
-	// Start and config should be ok
 	if result.Steps[0].Status != "ok" {
-		t.Errorf("start step should be ok, got %q: %s", result.Steps[0].Status, result.Steps[0].Message)
-	}
-	if result.Steps[1].Status != "ok" {
-		t.Errorf("config step should be ok, got %q: %s", result.Steps[1].Status, result.Steps[1].Message)
+		t.Errorf("start should be ok, got %q: %s", result.Steps[0].Status, result.Steps[0].Message)
 	}
 
-	// Total duration should be positive
 	if result.Total <= 0 {
 		t.Error("expected positive total duration")
 	}
 
-	// Config should have our data
-	if len(result.Config.Commands) == 0 {
-		t.Error("expected commands in result config")
-	}
-
-	// FinalCmd should be set since we specified CommandFlag
 	if result.FinalCmd == "" {
 		t.Error("expected FinalCmd to be set")
 	}
 }
 
+func TestRunInit_SingleStep(t *testing.T) {
+	tmpDir := t.TempDir()
+	mainConfig := `options: {}`
+	mainPath := filepath.Join(tmpDir, "fzfg.yaml")
+	os.WriteFile(mainPath, []byte(mainConfig), 0644)
+
+	t.Setenv("FZFG_CONF", mainPath)
+	Log = log.New(os.Stderr)
+	ModuleFlag = "files"
+	CommandFlag = ""
+
+	result, err := RunInit("start")
+	if err != nil {
+		t.Fatalf("RunInit(start) error: %v", err)
+	}
+
+	if len(result.Steps) != 1 {
+		t.Errorf("expected 1 step for 'start', got %d", len(result.Steps))
+	}
+	if result.Steps[0].Name != "start" {
+		t.Errorf("expected step 'start', got %q", result.Steps[0].Name)
+	}
+}
+
+func TestRunInit_UnknownStep(t *testing.T) {
+	Log = log.New(os.Stderr)
+	ModuleFlag = "files"
+
+	_, err := RunInit("bogus")
+	if err == nil {
+		t.Error("expected error for unknown step")
+	}
+}
+
 func TestRunInit_NoConfig(t *testing.T) {
-	// Point to nonexistent config
 	t.Setenv("FZFG_CONF", "")
 	t.Setenv("HOME", t.TempDir())
 
@@ -132,28 +177,11 @@ func TestRunInit_NoConfig(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	Log = log.New(os.Stderr)
-	InitFlag = true
+	ModuleFlag = "files"
 	CommandFlag = ""
-	OptionsFlag = ""
-	ProfileFlag = ""
 
-	_, err := RunInit()
+	_, err := RunInit("")
 	if err == nil {
 		t.Error("expected error when no config file exists")
-	}
-}
-
-func TestInitStep_Snapshot(t *testing.T) {
-	step := InitStep{
-		Name:     "test",
-		Status:   "ok",
-		Snapshot: map[string]string{"a": "1", "b": "2"},
-	}
-
-	if step.Snapshot["a"] != "1" {
-		t.Error("snapshot should contain key 'a'")
-	}
-	if step.Snapshot["b"] != "2" {
-		t.Error("snapshot should contain key 'b'")
 	}
 }

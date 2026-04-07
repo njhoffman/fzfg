@@ -11,44 +11,62 @@ import (
 func main() {
 	fzfg.InitFlags()
 
-	// --init mode: run full pipeline with debug output
-	if fzfg.InitFlag {
-		result, err := fzfg.RunInit()
+	// --init mode: run pipeline step(s)
+	if fzfg.InitFlag != "" {
+		initStep := fzfg.InitFlag
+		if initStep == "all" {
+			initStep = "" // empty = run all steps
+		}
+
+		result, err := fzfg.RunInit(initStep)
 		if err != nil {
 			if !fzfg.QuietFlag {
 				fmt.Fprintln(os.Stderr, err)
 			}
 			os.Exit(1)
 		}
-		// If command/options flags were provided, print the output
-		if result.FinalCmd != "" || result.FinalOpts != "" {
-			out := fzfg.ParseConfig(
-				fzfg.Command(result.FinalCmd),
-				nil,
-			)
-			// Re-parse from config for proper formatting
-			config := result.Config
+
+		// Print debug output if --debug is set
+		modes := fzfg.DebugModes(fzfg.DebugFlag)
+		fzfg.PrintDebug(result, modes)
+
+		// If command/options flags were provided, print the config output
+		config := result.Config
+		if fzfg.ProfileFlag != "" || fzfg.CommandFlag != "" || fzfg.OptionsFlag != "" {
+			var cmd fzfg.Command
+			var opts fzfg.Options
 			if fzfg.ProfileFlag != "" {
-				out = fzfg.ParseConfig(
-					config.Profiles[fzfg.ProfileFlag].Command,
-					config.Profiles[fzfg.ProfileFlag].Options,
-				)
+				cmd = config.Profiles[fzfg.ProfileFlag].Command
+				opts = config.Profiles[fzfg.ProfileFlag].Options
 			} else {
-				var cmd fzfg.Command
-				var opts fzfg.Options
 				if fzfg.CommandFlag != "" {
 					cmd = config.Commands[fzfg.CommandFlag]
 				}
 				if fzfg.OptionsFlag != "" {
 					opts = config.Options[fzfg.OptionsFlag]
 				}
-				out = fzfg.ParseConfig(cmd, opts)
 			}
+			out := fzfg.ParseConfig(cmd, opts)
 			fmt.Print(out)
 		}
 		os.Exit(0)
 	}
 
+	// --debug without --init: run full pipeline then show debug
+	if fzfg.DebugFlag != "" {
+		result, err := fzfg.RunInit("")
+		if err != nil {
+			if !fzfg.QuietFlag {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			os.Exit(1)
+		}
+		modes := fzfg.DebugModes(fzfg.DebugFlag)
+		fzfg.PrintDebug(result, modes)
+		os.Exit(0)
+	}
+
+	// Normal mode: load config and output
 	config, err := fzfg.LoadConfig()
 	if err != nil {
 		if !fzfg.QuietFlag {

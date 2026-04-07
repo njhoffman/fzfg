@@ -1,6 +1,34 @@
+# Layout guidelines and defauts
+#--------------------------------------------------------
+# fzf-tmux options
+# Popup window (requires tmux 3.2 or above):
+#   -p [WIDTH[%][,HEIGHT[%]]]  (default: 50%)
+#   -w WIDTH[%]
+#   -h HEIGHT[%]
+#   -x COL
+#   -y ROW
+# Split pane:
+#   -u [HEIGHT[%]]             Split above (up)
+#   -d [HEIGHT[%]]             Split below (down)
+#   -l [WIDTH[%]]              Split left
+#   -r [WIDTH[%]]              Split right
+layout:
+  defaults:
+    # always use fzf-tmux if available
+    fzf-tmux: 
+      enabled: 
+        condition: always true if tmux is available
+      # default split layout unless otherwise specified
+      layout: -d 50%
+      popup:
+        enabled: 
+          condition: 2 or more tmux panes or tput cols > 140
+        width: 85%
+        eight: 75%
+
+
 # Global logger
 # -------------------------------------------------------
-
  # DebugLevel  InfoLevel  WarnLevel  ErrorLevel  FatalLevel 
 # https://github.com/charmbracelet/log?tab=readme-ov-file
 

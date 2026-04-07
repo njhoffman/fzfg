@@ -69,6 +69,7 @@ func LoadConfig() (Config, error) {
 	knownKeys := map[string]bool{
 		"commands": true, "options": true, "profiles": true,
 		"bindings": true, "previews": true, "logger": true,
+		"layout": true,
 	}
 
 	for key, val := range raw {
