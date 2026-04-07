@@ -1,14 +1,14 @@
-# fzg = [fzf](https://github.com/junegunn/fzf) + goodies
+# fzfg = [fzf](https://github.com/junegunn/fzf) + goodies
 
-fzg is mainly a CLI tool to use [fzf (made by junegunn)](https://github.com/junegunn/fzf) with a configuration file.
+fzfg is mainly a CLI tool to use [fzf (made by junegunn)](https://github.com/junegunn/fzf) with a configuration file.
 
-fzg will also contains a collection of some shell goodies that I use everyday in my terminal.
+fzfg will also contains a collection of some shell goodies that I use everyday in my terminal.
 
 ## Project status
 
 This project is in a very early stage. Things might break !
 
-## But... whyyy ?!
+## But... whyyy ?
 
 I started to use fzf a lot in shell functions and scripts.
 
@@ -25,10 +25,10 @@ I had syntax errors because of missing one `,` as separator or the `:`.
 
 The configuration format must be flexible enough to allow both horizontal and vertical structure.
 
-fzg use the YAML format which can allow easier reading with vertical structure.
+fzfg use the YAML format which can allow easier reading with vertical structure.
 
 Instead of one long value seperated by a `,`, the value can also be written
-as a YAML sequence or mapping, then fzg will use the appropriate separators for the options.
+as a YAML sequence or mapping, then fzfg will use the appropriate separators for the options.
 
 **Issue 2 : outdated state**
 
@@ -43,7 +43,7 @@ sourcing the files containing those functions.
 The configuration must be contained in one place to avoid having to edit
 multiple files just for one modification.
 
-fzg use the YAML format which also avoid configuration duplication
+fzfg use the YAML format which also avoid configuration duplication
 and allow reusability with merging, anchors and aliases features.
 
 To avoid outdated state, the configuration can be sourced easily in functions or scripts.
@@ -59,7 +59,15 @@ or fzf options, I don't always remember them.
 
 The commands or options must be organised and retrieved by only using a configuration key.
 
-fzg default configuration is splitted in 3 sections : `commands`, `options` and `profiles`.
+fzfg default configuration is split into a main config file (`fzfg.yaml`) and
+module files (in `modules/`). Global defaults (bindings, previews, option presets)
+live in `fzfg.yaml`, while domain-specific commands, options, and profiles live
+in module files loaded via `!include` directives.
+
+On each run, fzfg combines all YAML files into a single `config.yaml` in the
+same directory, preserving all anchors and aliases across files.
+
+The configuration has 3 main sections: `commands`, `options` and `profiles`.
 
 `commands` and `options` sections contain subkeys that are used to identify
 commands and group of options.
@@ -75,14 +83,13 @@ They are not criticisms of fzf !
 
 ## How does it work
 
-The fzg CLI tool does only two things :
+The fzfg CLI tool does only two things :
 
 1) it parses the required configuration and turn it into a string ;
 2) it formats the string to be sourceable/exportable (without the `-r` flag)
    or assigned to variables as a raw value (with the `-r` flag).
 
-
-Configuration example : `./configs/fzg.yaml`
+Configuration example : `./configs/fzfg.yaml`
 
 ```yaml
 commands:
@@ -119,47 +126,47 @@ profiles:
     options: *opts_preview
 ```
 
-With the configuration above, here are some usages of fzg.
+With the configuration above, here are some usages of fzfg.
 To find other usages, check `./scripts/tests`.
 
 ```bash
 # print the command assigned to 'find_files'
-$ fzg -c find_files
+$ fzfg -c find_files
 export FZF_DEFAULT_COMMAND="find . -mindepth 1 -not \\( -path './.git/*' -or -path..."
 
 # print options assigned to 'preview'
-$ fzg -o preview
+$ fzfg -o preview
 export FZF_DEFAULT_OPTS="--extended --multi --no-exact --preview-window=60%,right,..."
 
-# export variables by sourcing output of fzg, then run fzf
-$ source <(fzg -c find_files -o preview); fzf
+# export variables by sourcing output of fzfg, then run fzf
+$ source <(fzfg -c find_files -o preview); fzf
 
 # assign raw values from configuration to each variables,
 # then run fzf (notice the -r flag)
-$ FZF_DEFAULT_COMMAND="$(fzg -r -c find_files)" FZF_DEFAULT_OPTS="$(fzg -r -o preview)" fzf
+$ FZF_DEFAULT_COMMAND="$(fzfg -r -c find_files)" FZF_DEFAULT_OPTS="$(fzfg -r -o preview)" fzf
 
 # print the profile assigned to 'view_files'
-$ fzg -p view_files
+$ fzfg -p view_files
 export FZF_DEFAULT_COMMAND="find . -mindepth 1 -not \\( -path './.git/*' -or -path..."
 export FZF_DEFAULT_OPTS="--extended --multi --no-exact --preview-window=60%,right,..."
 
-# export variables by sourcing output of fzg, then run fzf
-$ source <(fzg -p view_files); fzf
+# export variables by sourcing output of fzfg, then run fzf
+$ source <(fzfg -p view_files); fzf
 
 # use with an alias
-$ alias zv='FZF_DEFAULT_COMMAND="$(fzg -r -c find_files)" FZF_DEFAULT_OPTS="$(fzg -r -o preview)" fzf'
+$ alias zv='FZF_DEFAULT_COMMAND="$(fzfg -r -c find_files)" FZF_DEFAULT_OPTS="$(fzfg -r -o preview)" fzf'
 
 # use with a function
 $ zv(){
   local FZF_DEFAULT_COMMAND FZF_DEFAULT_OPTS
-  source <(fzg -p view_files)
+  source <(fzfg -p view_files)
   fzf
 }
 ```
 
 ```bash
-$ fzg -h
-USAGE: fzg [-q] [-r] [-c CMD -o OPTS | -c CMD | -o OPTS | -p PROFILE]
+$ fzfg -h
+USAGE: fzfg [-q] [-r] [-c CMD -o OPTS | -c CMD | -o OPTS | -p PROFILE]
 
 OPTIONS:
   -c string
@@ -182,31 +189,69 @@ I tend to use the install script `./scripts/install`.
 
 The script will :
 
-- build fzg and copy it in the `$HOME/.local/bin` directory ;
-- create the `$HOME/.config/fzg/` directory and copy `./configs/fzg.yaml` with
+- build fzfg and copy it in the `$HOME/.local/bin` directory ;
+- create the `$HOME/.config/fzfg/` directory and copy `./configs/fzfg.yaml` with
   `./shell/completions.bash` into it.
-
 
 ## Configuration
 
-By default the configuration is a YAML file called `fzg.yaml`.
+By default the configuration is a YAML file called `fzfg.yaml`.
 
 YAML is used rather than JSON because of merging, anchors and aliases features.
 
 As JSON is a subset of YAML, you could also use JSON files
-but you would have to define `$FZG_CONFIG_FILE`.
+but you would have to define `$FZFG_CONF`.
 
-On execution, fzg will check these conditions to determinate what file to use.
+On execution, fzfg will check these conditions to determinate what file to use.
 
-1) `$FZG_CONFIG_FILE` environment variable points to a readable file ;
-2) `$HOME/.config/fzg/fzg.yaml` is a readable file ;
-3) `./fzg.yaml` is a readable file.
+1) `$FZFG_CONF` environment variable points to a readable file ;
+2) `$HOME/.config/fzfg/fzfg.yaml` is a readable file ;
+3) `./fzfg.yaml` is a readable file.
+
+### Modular Configuration
+
+The main `fzfg.yaml` can include module files using the `!include` directive:
+
+```yaml
+# Global defaults
+bindings:
+  jump: &binds_jump_g
+    alt-g: jump
+
+options:
+  default: &opts_default_g
+    ansi: true
+    reverse: true
+
+# Include module configs
+files: !include modules/*.yaml
+```
+
+Module files (e.g., `modules/files.yaml`) define their own commands, options,
+and profiles that can reference global anchors:
+
+```yaml
+commands:
+  fd_files: &cmd_fd_files [fd, --color=always, --hidden, --type=f]
+
+options:
+  default: &opts_default
+    <<: *opts_default_g
+
+profiles:
+  view_files:
+    command: *cmd_fd_files
+    options: *opts_preview_g
+```
+
+On each run, all files are combined into a single `config.yaml` with all
+anchors and aliases preserved.
 
 A configuration is available in the `./configs/` directory or in the example above.
 
 ## Goodies
 
-At this moment, fzg only have a completion script for fzg configuration keys.
+At this moment, fzfg only have a completion script for fzfg configuration keys.
 
 Later, some utilities that I use everyday will be added.
 

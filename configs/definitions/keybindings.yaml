@@ -1,0 +1,905 @@
+# fzf key binding and action definitions
+# Used for validation of user --bind configurations.
+#
+# Structure:
+#   keys: available key names by category
+#   events: triggerable events with descriptions
+#   actions: available actions with descriptions, argument requirements, categories
+#   defaults: default key-to-action mappings
+
+# ===========================================================================
+# Available Keys
+# ===========================================================================
+keys:
+  control:
+    description: Control key combinations.
+    values:
+      - ctrl-a
+      - ctrl-b
+      - ctrl-c
+      - ctrl-d
+      - ctrl-e
+      - ctrl-f
+      - ctrl-g
+      - ctrl-h
+      - ctrl-i
+      - ctrl-j
+      - ctrl-k
+      - ctrl-l
+      - ctrl-m
+      - ctrl-n
+      - ctrl-o
+      - ctrl-p
+      - ctrl-q
+      - ctrl-r
+      - ctrl-s
+      - ctrl-t
+      - ctrl-u
+      - ctrl-v
+      - ctrl-w
+      - ctrl-x
+      - ctrl-y
+      - ctrl-z
+      - ctrl-space
+      - ctrl-delete
+      - "ctrl-\\"
+      - ctrl-]
+      - ctrl-^
+      - ctrl-/
+
+  alt:
+    description: Alt (meta) key combinations. alt-[*] accepts any single character.
+    values:
+      - alt-a through alt-z
+      - alt-0 through alt-9
+      - alt-up
+      - alt-down
+      - alt-left
+      - alt-right
+      - alt-home
+      - alt-end
+      - alt-backspace
+      - alt-delete
+      - alt-page-up
+      - alt-page-down
+      - alt-enter
+      - alt-space
+
+  function:
+    description: Function keys.
+    values: [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12]
+
+  basic:
+    description: Basic keys.
+    values:
+      - enter
+      - space
+      - backspace
+      - tab
+      - shift-tab
+      - esc
+      - delete
+      - insert
+
+  navigation:
+    description: Navigation keys.
+    values:
+      - up
+      - down
+      - left
+      - right
+      - home
+      - end
+      - page-up
+      - page-down
+
+  modifier-combos:
+    description: >-
+      Modifier combinations. Can be combined with navigation and function keys.
+      Format: modifier-key (e.g. ctrl-alt-a, shift-left, ctrl-shift-f1).
+    prefixes:
+      - shift-
+      - ctrl-
+      - alt-
+      - ctrl-alt-
+      - ctrl-shift-
+      - alt-shift-
+      - ctrl-alt-shift-
+
+  mouse:
+    description: Mouse events.
+    values:
+      - left-click
+      - right-click
+      - double-click
+      - scroll-up
+      - scroll-down
+      - preview-scroll-up
+      - preview-scroll-down
+      - shift-left-click
+      - shift-right-click
+      - shift-scroll-up
+      - shift-scroll-down
+
+  single-char:
+    description: >-
+      Any single printable character can be used as a key binding.
+      Must be quoted in YAML if special (e.g. ",", ";").
+
+# ===========================================================================
+# Events
+# ===========================================================================
+events:
+  start:
+    description: >-
+      Triggered when the fzf finder starts. Useful for initial setup
+      like loading data or configuring the interface.
+
+  load:
+    description: >-
+      Triggered when the input stream is complete and initial processing
+      finishes. For static input, fires after start. For piped input,
+      fires when the pipe closes.
+
+  resize:
+    description: Triggered when the terminal is resized.
+
+  result:
+    description: >-
+      Triggered when filtering is complete and the result list is ready.
+      Fires after every query change that produces a new result set.
+
+  change:
+    description: Triggered when the query string changes.
+
+  focus:
+    description: >-
+      Triggered when the focused item changes due to cursor movement
+      or result list update. Useful for updating preview dynamically.
+
+  multi:
+    description: Triggered when the multi-selection set changes (item selected or deselected).
+
+  one:
+    description: Triggered when there is exactly one match remaining.
+
+  zero:
+    description: Triggered when there are no matches.
+
+  backward-eof:
+    description: >-
+      Triggered when the user tries to delete backward from an empty
+      query (backspace on empty input).
+
+  jump:
+    description: Triggered when the user successfully jumps to a target in jump mode.
+
+  jump-cancel:
+    description: Triggered when jump mode is cancelled without selecting a target.
+
+  click-header:
+    description: >-
+      Triggered on mouse click within the header area. Sets
+      FZF_CLICK_HEADER_LINE, FZF_CLICK_HEADER_COLUMN, and
+      FZF_CLICK_HEADER_WORD environment variables.
+
+  click-footer:
+    description: >-
+      Triggered on mouse click within the footer area. Sets
+      FZF_CLICK_FOOTER_LINE, FZF_CLICK_FOOTER_COLUMN, and
+      FZF_CLICK_FOOTER_WORD environment variables.
+
+# ===========================================================================
+# Actions
+# ===========================================================================
+actions:
+  # -------------------------------------------------------------------------
+  # Movement & Navigation
+  # -------------------------------------------------------------------------
+  movement:
+    abort:
+      description: Exit fzf without making a selection. Returns exit code 130.
+      args: false
+    accept:
+      description: Confirm the current selection and exit with code 0.
+      args: false
+    accept-non-empty:
+      description: Accept only if there is at least one selected or focused item.
+      args: false
+    accept-or-print-query:
+      description: Accept if there is a match, otherwise print the query string.
+      args: false
+    cancel:
+      description: Clear the query string if non-empty, otherwise abort.
+      args: false
+    backward-char:
+      description: Move cursor one character to the left.
+      args: false
+    backward-subword:
+      description: Move cursor to the beginning of the current subword (camelCase-aware).
+      args: false
+    backward-word:
+      description: Move cursor to the beginning of the current word.
+      args: false
+    beginning-of-line:
+      description: Move cursor to the beginning of the input line.
+      args: false
+    end-of-line:
+      description: Move cursor to the end of the input line.
+      args: false
+    forward-char:
+      description: Move cursor one character to the right.
+      args: false
+    forward-subword:
+      description: Move cursor to the end of the current subword (camelCase-aware).
+      args: false
+    forward-word:
+      description: Move cursor to the end of the current word.
+      args: false
+    best:
+      description: Move focus to the best matching item (highest score).
+      args: false
+    first:
+      description: Move focus to the first item in the list.
+      args: false
+    last:
+      description: Move focus to the last item in the list.
+      args: false
+    down:
+      description: Move focus down one item.
+      args: false
+    down-match:
+      description: Move focus down to the next matching item.
+      args: false
+    down-selected:
+      description: Move focus down to the next selected item.
+      args: false
+    up:
+      description: Move focus up one item.
+      args: false
+    up-match:
+      description: Move focus up to the previous matching item.
+      args: false
+    up-selected:
+      description: Move focus up to the previous selected item.
+      args: false
+    page-down:
+      description: Move focus down one page.
+      args: false
+    page-up:
+      description: Move focus up one page.
+      args: false
+    half-page-down:
+      description: Move focus down half a page.
+      args: false
+    half-page-up:
+      description: Move focus up half a page.
+      args: false
+    offset-down:
+      description: Scroll the list down, keeping cursor at top (like Ctrl-E in vim).
+      args: false
+    offset-middle:
+      description: Scroll so the focused item is in the middle (like zz in vim).
+      args: false
+    offset-up:
+      description: Scroll the list up, keeping cursor at bottom (like Ctrl-Y in vim).
+      args: false
+    pos:
+      description: Move to a specific numeric position in the list.
+      args: true
+      arg_type: integer
+    jump:
+      description: >-
+        Enter EasyMotion-like jump mode. Labels visible items with
+        characters from --jump-labels for quick 2-keystroke selection.
+      args: false
+    jump-accept:
+      description: Jump mode that immediately accepts the jumped-to item.
+      args: false
+
+  # -------------------------------------------------------------------------
+  # Preview Navigation
+  # -------------------------------------------------------------------------
+  preview-navigation:
+    preview-down:
+      description: Scroll preview window down one line.
+      args: false
+    preview-up:
+      description: Scroll preview window up one line.
+      args: false
+    preview-page-down:
+      description: Scroll preview window down one page.
+      args: false
+    preview-page-up:
+      description: Scroll preview window up one page.
+      args: false
+    preview-half-page-down:
+      description: Scroll preview window down half a page.
+      args: false
+    preview-half-page-up:
+      description: Scroll preview window up half a page.
+      args: false
+    preview-top:
+      description: Scroll preview window to the top.
+      args: false
+    preview-bottom:
+      description: Scroll preview window to the bottom.
+      args: false
+
+  # -------------------------------------------------------------------------
+  # Selection
+  # -------------------------------------------------------------------------
+  selection:
+    select:
+      description: Select the current item without moving.
+      args: false
+    select-all:
+      description: Select all items in the current result set.
+      args: false
+    deselect:
+      description: Deselect the current item.
+      args: false
+    deselect-all:
+      description: Deselect all items.
+      args: false
+    toggle:
+      description: Toggle selection of the current item.
+      args: false
+    toggle-all:
+      description: Toggle selection of all items.
+      args: false
+    toggle-in:
+      description: Select the current item if not selected, then move down.
+      args: false
+    toggle-out:
+      description: Deselect the current item if selected, then move down.
+      args: false
+    clear-multi:
+      description: Clear all multi-selections.
+      args: false
+    exclude:
+      description: Exclude the focused item from the result list.
+      args: false
+    exclude-multi:
+      description: Exclude all selected items from the result list.
+      args: false
+
+  # -------------------------------------------------------------------------
+  # Text Editing
+  # -------------------------------------------------------------------------
+  editing:
+    backward-delete-char:
+      description: Delete one character before the cursor.
+      args: false
+    backward-delete-char/eof:
+      description: Delete backward, or trigger EOF if query is empty.
+      args: false
+    backward-kill-subword:
+      description: Delete from cursor to beginning of current subword.
+      args: false
+    backward-kill-word:
+      description: Delete from cursor to beginning of current word.
+      args: false
+    delete-char:
+      description: Delete character under the cursor.
+      args: false
+    delete-char/eof:
+      description: Delete forward, or trigger EOF/abort if query is empty.
+      args: false
+    kill-line:
+      description: Delete from cursor to end of line.
+      args: false
+    kill-subword:
+      description: Delete from cursor to end of current subword.
+      args: false
+    kill-word:
+      description: Delete from cursor to end of current word.
+      args: false
+    unix-line-discard:
+      description: Delete from cursor to beginning of line.
+      args: false
+    unix-word-rubout:
+      description: Delete the word before the cursor (Unix-style, space-delimited).
+      args: false
+    yank:
+      description: Paste the last deleted text.
+      args: false
+    put:
+      description: Insert a character or string into the query.
+      args: true
+      arg_type: string
+    clear-query:
+      description: Clear the entire query string.
+      args: false
+    replace-query:
+      description: Replace the query with the currently focused item's text.
+      args: false
+
+  # -------------------------------------------------------------------------
+  # Search & History
+  # -------------------------------------------------------------------------
+  search:
+    disable-search:
+      description: Disable search (same as --disabled mode).
+      args: false
+    enable-search:
+      description: Re-enable search after disable-search.
+      args: false
+    toggle-search:
+      description: Toggle search on/off.
+      args: false
+    search:
+      description: Perform a search with the given string.
+      args: true
+      arg_type: string
+    next-history:
+      description: Navigate to the next entry in search history.
+      args: false
+      conditions:
+        - if: --history is not set
+          then: no effect
+    prev-history:
+      description: Navigate to the previous entry in search history.
+      args: false
+      conditions:
+        - if: --history is not set
+          then: no effect
+
+  # -------------------------------------------------------------------------
+  # Display & UI Changes
+  # -------------------------------------------------------------------------
+  display:
+    bell:
+      description: Ring the terminal bell.
+      args: false
+    clear-screen:
+      description: Clear and redraw the screen.
+      args: false
+    close:
+      description: Close the preview window if open, otherwise abort.
+      args: false
+    refresh-preview:
+      description: Re-execute the preview command and update the preview window.
+      args: false
+    change-border-label:
+      description: Change the border label text.
+      args: true
+      arg_type: string
+    change-ghost:
+      description: Change the ghost text shown when query is empty.
+      args: true
+      arg_type: string
+    change-header:
+      description: Change the header text.
+      args: true
+      arg_type: string
+    change-header-label:
+      description: Change the header border label text.
+      args: true
+      arg_type: string
+    change-header-lines:
+      description: Change the number of header lines.
+      args: true
+      arg_type: integer
+    change-input-label:
+      description: Change the input border label text.
+      args: true
+      arg_type: string
+    change-list-label:
+      description: Change the list border label text.
+      args: true
+      arg_type: string
+    change-multi:
+      description: Enable or configure multi-select mode. Without args enables unlimited multi.
+      args: true
+      arg_type: integer
+    change-nth:
+      description: Change the --nth field expression for filtering.
+      args: true
+      arg_type: string
+    change-pointer:
+      description: Change the pointer character.
+      args: true
+      arg_type: string
+    change-preview:
+      description: Change the preview command.
+      args: true
+      arg_type: string
+    change-preview-label:
+      description: Change the preview border label text.
+      args: true
+      arg_type: string
+    change-preview-window:
+      description: Change preview window options.
+      args: true
+      arg_type: string
+    change-prompt:
+      description: Change the prompt string.
+      args: true
+      arg_type: string
+    change-query:
+      description: Replace the query string.
+      args: true
+      arg_type: string
+    change-with-nth:
+      description: Change the --with-nth expression for display transformation.
+      args: true
+      arg_type: string
+    hide-header:
+      description: Hide the header section.
+      args: false
+    hide-input:
+      description: Hide the input section.
+      args: false
+    hide-preview:
+      description: Hide the preview window.
+      args: false
+    show-header:
+      description: Show the header section.
+      args: false
+    show-input:
+      description: Show the input section.
+      args: false
+    show-preview:
+      description: Show the preview window.
+      args: false
+    toggle-header:
+      description: Toggle header visibility.
+      args: false
+    toggle-hscroll:
+      description: Toggle horizontal scrolling.
+      args: false
+    toggle-input:
+      description: Toggle input section visibility.
+      args: false
+    toggle-multi-line:
+      description: Toggle multi-line display mode.
+      args: false
+    toggle-preview:
+      description: Toggle preview window visibility.
+      args: false
+    toggle-preview-wrap:
+      description: Toggle line wrapping in preview window.
+      args: false
+    toggle-preview-wrap-word:
+      description: Toggle word-level wrapping in preview window.
+      args: false
+    toggle-raw:
+      description: Toggle raw mode.
+      args: false
+    toggle-sort:
+      description: Toggle sorting of results.
+      args: false
+    toggle-track:
+      description: Toggle item tracking.
+      args: false
+    toggle-track-current:
+      description: Toggle tracking of the current item specifically.
+      args: false
+    toggle-wrap:
+      description: Toggle line wrapping in the list.
+      args: false
+    toggle-wrap-word:
+      description: Toggle word-level wrapping in the list.
+      args: false
+    enable-raw:
+      description: Enable raw mode.
+      args: false
+    disable-raw:
+      description: Disable raw mode.
+      args: false
+    track-current:
+      description: Start tracking the current item.
+      args: false
+    untrack-current:
+      description: Stop tracking the current item.
+      args: false
+
+  # -------------------------------------------------------------------------
+  # External Commands & Process Control
+  # -------------------------------------------------------------------------
+  execution:
+    execute:
+      description: >-
+        Execute an external command. Supports placeholders: {} (line),
+        {+} (selected), {q} (query), {n} (index), field expressions.
+        fzf is suspended while the command runs.
+      args: true
+      arg_type: string
+    execute-silent:
+      description: Execute an external command silently without suspending fzf.
+      args: true
+      arg_type: string
+    become:
+      description: >-
+        Replace the fzf process with the given command (exec). The
+        command inherits fzf's environment. Exit codes 126/127 on error.
+      args: true
+      arg_type: string
+    reload:
+      description: >-
+        Re-run the given command and replace the input list with its output.
+        Useful for dynamically updating results based on query.
+      args: true
+      arg_type: string
+    reload-sync:
+      description: >-
+        Like reload but synchronous -- waits for the command to finish
+        before updating the list.
+      args: true
+      arg_type: string
+    transform:
+      description: >-
+        Execute command and interpret its output as a series of fzf actions.
+        Allows dynamic behavior based on external command output.
+      args: true
+      arg_type: string
+    transform-border-label:
+      description: Transform the border label via external command output.
+      args: true
+      arg_type: string
+    transform-ghost:
+      description: Transform the ghost text via external command output.
+      args: true
+      arg_type: string
+    transform-header:
+      description: Transform the header via external command output.
+      args: true
+      arg_type: string
+    transform-header-label:
+      description: Transform the header label via external command output.
+      args: true
+      arg_type: string
+    transform-input-label:
+      description: Transform the input label via external command output.
+      args: true
+      arg_type: string
+    transform-list-label:
+      description: Transform the list label via external command output.
+      args: true
+      arg_type: string
+    transform-preview-label:
+      description: Transform the preview label via external command output.
+      args: true
+      arg_type: string
+    transform-prompt:
+      description: Transform the prompt via external command output.
+      args: true
+      arg_type: string
+    transform-query:
+      description: Transform the query via external command output.
+      args: true
+      arg_type: string
+    print:
+      description: Add a string to the output queue (printed on accept).
+      args: true
+      arg_type: string
+
+  # -------------------------------------------------------------------------
+  # Background Execution
+  # -------------------------------------------------------------------------
+  background:
+    bg-cancel:
+      description: Cancel running background transform processes.
+      args: false
+    bg-transform:
+      description: Execute transform in background.
+      args: true
+      arg_type: string
+    bg-transform-border-label:
+      description: Background transform for border label.
+      args: true
+      arg_type: string
+    bg-transform-ghost:
+      description: Background transform for ghost text.
+      args: true
+      arg_type: string
+    bg-transform-header:
+      description: Background transform for header.
+      args: true
+      arg_type: string
+    bg-transform-header-label:
+      description: Background transform for header label.
+      args: true
+      arg_type: string
+    bg-transform-input-label:
+      description: Background transform for input label.
+      args: true
+      arg_type: string
+    bg-transform-list-label:
+      description: Background transform for list label.
+      args: true
+      arg_type: string
+    bg-transform-preview-label:
+      description: Background transform for preview label.
+      args: true
+      arg_type: string
+    bg-transform-prompt:
+      description: Background transform for prompt.
+      args: true
+      arg_type: string
+    bg-transform-query:
+      description: Background transform for query.
+      args: true
+      arg_type: string
+
+  # -------------------------------------------------------------------------
+  # Binding Management
+  # -------------------------------------------------------------------------
+  binding:
+    rebind:
+      description: Re-enable previously unbound key bindings.
+      args: true
+      arg_type: string
+    unbind:
+      description: Remove key bindings for specified keys.
+      args: true
+      arg_type: string
+    trigger:
+      description: Trigger one or more actions by name.
+      args: true
+      arg_type: string
+
+  # -------------------------------------------------------------------------
+  # Miscellaneous
+  # -------------------------------------------------------------------------
+  misc:
+    bell:
+      description: Ring the terminal bell.
+      args: false
+    ignore:
+      description: Do nothing. Useful to explicitly unbind a key by assigning no-op.
+      args: false
+    nop:
+      description: Alias for ignore.
+      args: false
+
+# ===========================================================================
+# Default Key Bindings
+# ===========================================================================
+defaults:
+  abort:
+    keys: [ctrl-c, ctrl-g, ctrl-q, esc]
+    description: Exit without selection.
+
+  accept:
+    keys: [enter, double-click]
+    description: Confirm selection and exit.
+
+  backward-char:
+    keys: [ctrl-b, left]
+    description: Move cursor left.
+
+  backward-delete-char:
+    keys: [ctrl-h, backspace]
+    description: Delete character before cursor.
+
+  backward-kill-word:
+    keys: [alt-backspace]
+    description: Delete word before cursor.
+
+  backward-word:
+    keys: [alt-b, shift-left]
+    description: Move cursor to previous word boundary.
+
+  beginning-of-line:
+    keys: [ctrl-a, home]
+    description: Move cursor to start of line.
+
+  clear-screen:
+    keys: [ctrl-l]
+    description: Clear and redraw screen.
+
+  delete-char:
+    keys: [delete]
+    description: Delete character under cursor.
+
+  delete-char/eof:
+    keys: [ctrl-d]
+    description: Delete forward or abort on empty query.
+
+  down:
+    keys: [ctrl-j, down]
+    description: Move focus down.
+
+  down-match:
+    keys: [ctrl-n, alt-down]
+    description: Move to next matching item.
+
+  end-of-line:
+    keys: [ctrl-e, end]
+    description: Move cursor to end of line.
+
+  forward-char:
+    keys: [ctrl-f, right]
+    description: Move cursor right.
+
+  forward-word:
+    keys: [alt-f, shift-right]
+    description: Move cursor to next word boundary.
+
+  kill-word:
+    keys: [alt-d]
+    description: Delete word after cursor.
+
+  page-down:
+    keys: [page-down]
+    description: Move focus down one page.
+
+  page-up:
+    keys: [page-up]
+    description: Move focus up one page.
+
+  preview-down:
+    keys: [shift-down]
+    description: Scroll preview down.
+
+  preview-up:
+    keys: [shift-up]
+    description: Scroll preview up.
+
+  toggle+down:
+    keys: [tab]
+    description: Toggle selection and move down.
+    composite: true
+
+  toggle+up:
+    keys: [shift-tab]
+    description: Toggle selection and move up.
+    composite: true
+
+  toggle-wrap-word:
+    keys: [ctrl-/, alt-/]
+    description: Toggle word wrapping mode.
+
+  unix-line-discard:
+    keys: [ctrl-u]
+    description: Delete from cursor to beginning of line.
+
+  unix-word-rubout:
+    keys: [ctrl-w]
+    description: Delete word before cursor (Unix-style).
+
+  up:
+    keys: [ctrl-k, up]
+    description: Move focus up.
+
+  up-match:
+    keys: [ctrl-p, alt-up]
+    description: Move to previous matching item.
+
+  yank:
+    keys: [ctrl-y]
+    description: Paste last deleted text.
+
+# ===========================================================================
+# Action Composition
+# ===========================================================================
+composition:
+  description: >-
+    Multiple actions can be chained with the + separator.
+    Actions are executed sequentially left to right.
+  example: "ctrl-a:select-all+accept"
+
+  arg_delimiters:
+    description: >-
+      Actions that take arguments use (...) by default. Alternative
+      delimiter pairs are available to avoid parsing conflicts.
+    values:
+      - "(...)  # default"
+      - "[...]"
+      - "{...}"
+      - "<...>"
+      - "~...~"
+      - "!...!"
+      - "@...@"
+      - "#...#"
+      - "$...$"
+      - "%...%"
+      - "^...^"
+      - "&...&"
+      - "*...*"
+      - ";...;"
+      - "/.../  "
+      - "|...|"
+      - ":...   # no closing delimiter needed"

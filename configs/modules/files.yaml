@@ -1,0 +1,89 @@
+
+# Module commands
+# -------------------------------------------------------
+commands: &commands_files
+  fd: &cmd_fd [fd, --color=always, --hidden]
+  fd_dirs: &cmd_fd_dirs [*cmd_fd, --type=d]
+  fd_files: &cmd_fd_files [*cmd_fd, --type=f]
+
+  rg: &cmd_rg [
+      rg,
+      --color=always,
+      --column,
+      --hidden,
+      --line-number,
+      --no-heading,
+      --no-ignore,
+      --smart-case,
+      --glob=!.git,
+      --glob=!node_modules,
+    ]
+
+
+# Module options
+# -------------------------------------------------------
+options: &options_files
+  default: &opts_default
+    <<: *opts_default_g
+
+  grep: &opts_grep
+    <<: [
+      *opts_default,
+      *opts_select_multi_g
+    ]
+    preview-window: up,66%,border-bottom,+{2}+3/3,~1
+    preview: [
+      *pview_bat_g,
+      "--highlight-line {2} -- {1}"
+    ]
+    sort: false
+
+  vimgrep: &opts_vimgrep
+    <<: [
+      *opts_default,
+      *opts_grep
+    ]
+    delimiter: ":"
+    nth: -1
+
+
+# Profiles (commands + options)
+# -------------------------------------------------------
+profiles: &profiles_files
+  select_paths:
+    command: [*cmd_fd_dirs, "--max-depth=1"]
+    options:
+      <<: *opts_select_multi_g
+
+  select_paths_recursive:
+    command: *cmd_fd_dirs
+    options:
+      <<: *opts_select_multi_g
+
+  view_files:
+    command: *cmd_fd_files
+    options: *opts_preview_g
+
+  filter_lines_regex:
+    command: *cmd_rg
+    options:
+      <<: *opts_vimgrep
+      bind:
+        <<: *binds_all_g
+        change: reload( sleep 0.05; $FZF_DEFAULT_COMMAND {q} || true )
+      disabled: true
+
+  filter_lines_fuzzy:
+    command: *cmd_rg
+    options:
+      <<: *opts_vimgrep
+      exact: true
+
+# Module metadata
+# -------------------------------------------------------
+module:
+  name: Files
+  desc: View files from various sources
+  commands: *commands_files
+  options: *options_files
+  profiles: *profiles_files

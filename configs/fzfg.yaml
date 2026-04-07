@@ -1,0 +1,112 @@
+# Global logger
+# -------------------------------------------------------
+
+ # DebugLevel  InfoLevel  WarnLevel  ErrorLevel  FatalLevel 
+# https://github.com/charmbracelet/log?tab=readme-ov-file
+
+logger:
+  default:
+    level: info
+    console: true
+    format: text
+    report-caller: true
+    report-timestamp: true
+    time-format: time.Kitchen
+  debug:
+    level: error
+    console: false
+    format: json
+    report-caller: true
+    file: /tmp/fzfg.log
+  http:
+    # net/http only acceptgs standard log adapter
+    # (pass it as ErrorLog to http.server)
+    force-level: error
+    console: true
+    prefix: http
+    format: standard-log
+
+
+# Global bindings
+# -------------------------------------------------------
+bindings:
+  jump: &binds_jump_g
+    alt-g: jump
+    alt-j: jump-accept
+
+  move: &binds_move_g
+    ",": down
+    ";": up
+    "alt-,": last
+    "alt-;": first
+
+  scroll: &binds_scroll_g
+    alt-d: preview-half-page-down
+    alt-u: preview-half-page-up
+    alt-e: preview-down
+    alt-y: preview-up
+
+  select: &binds_select_g
+    alt-a: select-all
+    alt-A: deselect-all
+
+  toggle: &binds_toggle_g
+    ctrl-alt-a: toggle-all
+    ctrl-alt-p: toggle-preview
+    ctrl-alt-s: toggle-sort
+
+  all: &binds_all_g
+    <<: [
+      *binds_jump_g,
+      *binds_move_g,
+      *binds_scroll_g,
+      *binds_select_g,
+      *binds_toggle_g
+    ]
+
+
+# Global previews
+# -------------------------------------------------------
+
+previews:
+  bat: &pview_bat_g bat --color=always --style=changes,header,numbers,rule,snip
+  tree: &pview_tree_g tree -aCFL 1
+
+# Global options
+# -------------------------------------------------------
+options:
+  default: &opts_default_g
+    ansi: true
+    bind:
+      <<: *binds_all_g
+    exact: false
+    reverse: true
+    select-1: true
+
+  select_one: &opts_select_one_g
+    <<: *opts_default_g
+    exact: true
+    multi: false
+
+  select_multi: &opts_select_multi_g
+    <<: *opts_default_g
+    exact: false
+    multi: true
+
+  preview: &opts_preview_g
+    <<: *opts_select_multi_g
+    preview-window: 66%,right,border-left
+    preview: [
+        "(",
+        *pview_bat_g,
+        "-- {} ||",
+        *pview_tree_g,
+        "-- {} ||",
+        "file -- {}",
+        ") 2> /dev/null",
+      ]
+
+# Global includes (not yaml standard)
+# -------------------------------------------------------
+files: !include modules/*.yaml
+

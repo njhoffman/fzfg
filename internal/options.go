@@ -1,4 +1,4 @@
-package fzg
+package fzfg
 
 import (
 	"fmt"

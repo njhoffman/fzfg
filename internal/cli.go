@@ -1,4 +1,4 @@
-package fzg
+package fzfg
 
 import (
 	"flag"
@@ -7,8 +7,10 @@ import (
 )
 
 var (
-	QuietFlag bool
-	RawFlag   bool
+	QuietFlag    bool
+	RawFlag      bool
+	ValidateFlag bool
+	InitFlag     bool
 
 	CommandFlag string
 	OptionsFlag string
@@ -27,6 +29,19 @@ func InitFlags() {
 		"r",
 		false,
 		"Print raw value without variable name or quoting (default: false)",
+	)
+
+	flag.BoolVar(
+		&ValidateFlag,
+		"v",
+		false,
+		"Validate configuration options against fzf defaults (default: false)",
+	)
+	flag.BoolVar(
+		&InitFlag,
+		"init",
+		false,
+		"Run full init pipeline with debug logging and timing (default: false)",
 	)
 
 	flag.StringVar(
@@ -51,7 +66,7 @@ func InitFlags() {
 	flag.Usage = func() {
 		fmt.Fprintf(
 			os.Stderr,
-			`USAGE: %s [-q] [-r] [-c CMD -o OPTS | -c CMD | -o OPTS | -p PROFILE]
+			`USAGE: %s [-q] [-r] [-v] [-init] [-c CMD -o OPTS | -c CMD | -o OPTS | -p PROFILE]
 
 OPTIONS:
 `,

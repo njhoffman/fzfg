@@ -1,0 +1,1366 @@
+# fzf option definitions with program defaults (before .fzfrc or env overrides)
+# Used for validation and comparison against user configuration.
+#
+# Structure per option:
+#   description: what the option does
+#   aliases: [flag forms]
+#   required: false (all options are optional)
+#   type: boolean | string | integer | enum | list
+#   default: value or {condition: ..., values: [...]}
+#   negate: [negation flags] (for booleans)
+#   value: {type, values, description} (for enums/complex)
+#   effects: side-effects on other options when set
+#   conditions: when this option's behavior changes based on other options
+#   examples: usage examples
+
+options:
+  # ===========================================================================
+  # Search
+  # ===========================================================================
+  search:
+    extended:
+      description: >-
+        Extended-search mode. Multiple search terms delimited by spaces are
+        treated as separate patterns. Supports prefix operators: ' (exact),
+        ^ (prefix), $ (suffix), ! (negation), | (OR).
+      aliases: [-x, --extended]
+      required: false
+      type: boolean
+      default: true
+      negate: [+x, --no-extended]
+
+    exact:
+      description: >-
+        Enable exact-match. Disables extended-search mode fuzzy matching;
+        only exact substring matches are returned.
+      aliases: [-e, --exact]
+      required: false
+      type: boolean
+      default: false
+      negate: [--no-exact]
+
+    ignore-case:
+      description: Case-insensitive match. Overrides smart-case.
+      aliases: [-i, --ignore-case]
+      required: false
+      type: boolean
+      default: false
+      negate: [+i, --no-ignore-case]
+      effects:
+        - smart-case=false
+
+    smart-case:
+      description: >-
+        Smart-case match. Search is case-insensitive by default but becomes
+        case-sensitive when the query contains uppercase letters.
+      aliases: [--smart-case]
+      required: false
+      type: boolean
+      default: true
+      negate: [--no-smart-case]
+      conditions:
+        - if: ignore-case=true
+          then: disabled
+
+    literal:
+      description: >-
+        Do not normalize latin script letters for matching. By default fzf
+        normalizes accented characters (e.g. treats e and e-acute as equal).
+      aliases: [--literal]
+      required: false
+      type: boolean
+      default: false
+
+    scheme:
+      description: Choose scoring scheme tailored for different types of input.
+      aliases: [-s, --scheme]
+      required: false
+      type: enum
+      default:
+        condition: >-
+          fzf chooses path scheme when the input is a TTY device (where fzf
+          would start its built-in walker or run $FZF_DEFAULT_COMMAND) and
+          there is no reload or transform action bound to start event.
+          Otherwise it chooses default scheme.
+        values: [path, default]
+      value:
+        type: enum
+        values:
+          default:
+            description: Generic scoring scheme designed to work well with any type of input.
+          path:
+            description: >-
+              Additional bonus point given only to characters after path
+              separator. Recommended when many files have spaces in their
+              paths.
+            effects:
+              - tiebreak=pathname,length
+          history:
+            description: >-
+              Scoring scheme suited for command history or input where
+              chronological ordering is important. No additional bonus
+              points are given so that chronological ordering has more weight.
+            effects:
+              - tiebreak=index
+
+    algo:
+      description: Fuzzy matching algorithm.
+      aliases: [--algo]
+      required: false
+      type: enum
+      default: v2
+      value:
+        type: enum
+        values:
+          v2:
+            description: Optimal scoring algorithm (slower for large datasets).
+          v1:
+            description: Faster but not guaranteed to find optimal result.
+
+    nth:
+      description: >-
+        Comma-separated list of field index expressions for limiting search
+        scope. Each can be a non-zero integer or range expression
+        ([BEGIN]..[END]). Uses delimiter to split fields.
+      aliases: [-n, --nth]
+      required: false
+      type: string
+      default: null
+
+    with-nth:
+      description: >-
+        Transform the presentation of each line using field index expressions
+        or a template string with placeholders like {1}, {2..}, {-1}.
+      aliases: [--with-nth]
+      required: false
+      type: string
+      default: null
+
+    accept-nth:
+      description: >-
+        Define which fields or template to use when printing accepted items.
+        Overrides --with-nth for output only.
+      aliases: [--accept-nth]
+      required: false
+      type: string
+      default: null
+
+    delimiter:
+      description: >-
+        Field delimiter regex for --nth, --with-nth, and field expressions
+        in --preview. Follows AWK-style splitting by default.
+      aliases: [-d, --delimiter]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: delimiter is set
+          then: nth and with-nth use this delimiter instead of AWK-style whitespace splitting
+
+    sort:
+      description: Sort the result. Enabled by default.
+      aliases: [--sort]
+      required: false
+      type: boolean
+      default: true
+      negate: [+s, --no-sort]
+
+    tiebreak:
+      description: >-
+        Comma-separated list of sort criteria to apply when the scores are
+        tied. index is always appended implicitly as the last criterion.
+      aliases: [--tiebreak]
+      required: false
+      type: list
+      default: length
+      value:
+        type: enum
+        values:
+          length:
+            description: Prefer shorter lines.
+          chunk:
+            description: Prefer shorter matched chunks (contiguous spans of matching characters).
+          pathname:
+            description: >-
+              Prefer match after last path separator. Only useful with path-like input.
+          begin:
+            description: Prefer match closer to the beginning of the line.
+          end:
+            description: Prefer match closer to the end of the line.
+          index:
+            description: >-
+              Prefer items appearing earlier in input stream. Implicitly
+              appended as last criterion; can only appear at end of list.
+      conditions:
+        - if: scheme=path
+          then: tiebreak=pathname,length
+        - if: scheme=history
+          then: tiebreak=index
+
+    tail:
+      description: >-
+        Maximum number of items to keep in memory. When set, fzf discards
+        oldest items beyond this limit (FIFO). Useful for streaming input.
+      aliases: [--tail]
+      required: false
+      type: integer
+      default: null
+
+    disabled:
+      description: >-
+        Do not perform search. Turns fzf into a simple selector interface.
+        Useful when combined with --bind to reload results externally.
+      aliases: [--disabled]
+      required: false
+      type: boolean
+      default: false
+
+  # ===========================================================================
+  # Input / Output
+  # ===========================================================================
+  input-output:
+    read0:
+      description: Read input delimited by ASCII NUL characters instead of newlines.
+      aliases: [--read0]
+      required: false
+      type: boolean
+      default: false
+      effects:
+        - multi-line display is enabled (each NUL-delimited item can span multiple lines)
+
+    print0:
+      description: Print output delimited by ASCII NUL characters instead of newlines.
+      aliases: [--print0]
+      required: false
+      type: boolean
+      default: false
+
+    ansi:
+      description: >-
+        Enable processing of ANSI color codes in input. Strips codes before
+        matching but preserves them for display.
+      aliases: [--ansi]
+      required: false
+      type: boolean
+      default: false
+
+    sync:
+      description: >-
+        Synchronous search for multi-staged filtering. fzf launches only
+        after the input stream is complete and associated start/load/result/focus
+        actions finish.
+      aliases: [--sync]
+      required: false
+      type: boolean
+      default: false
+      examples:
+        - "# Avoid rendering both fzf instances at the same time"
+        - "fzf --multi | fzf --sync"
+
+    no-tty-default:
+      description: >-
+        Search for current TTY via stderr instead of /dev/tty. Useful
+        when stdout and stderr are both redirected.
+      aliases: [--no-tty-default]
+      required: false
+      type: boolean
+      default: false
+
+  # ===========================================================================
+  # Global Style
+  # ===========================================================================
+  style:
+    style:
+      description: Style preset controlling borders and visual density.
+      aliases: [--style]
+      required: false
+      type: enum
+      default: default
+      value:
+        type: enum
+        values:
+          default:
+            description: Default fzf appearance.
+          minimal:
+            description: Minimal style with no borders or decorations.
+            effects:
+              - border=none
+              - list-border=none
+              - input-border=none
+              - header-border=none
+              - preview-border=none
+              - footer-border=none
+              - separator=""
+              - scrollbar=false
+              - pointer=""
+              - marker=""
+              - gutter=""
+          full:
+            description: >-
+              Full style with borders on all sections. Can be suffixed with
+              border style e.g. full:sharp.
+            effects:
+              - border=rounded
+              - list-border=rounded
+              - input-border=rounded
+              - header-border=rounded
+              - preview-border=rounded
+              - footer-border=rounded
+
+    color:
+      description: >-
+        Color configuration. Starts with optional base scheme then
+        comma-separated NAME:ANSI_COLOR:ATTR pairs.
+      aliases: [--color]
+      required: false
+      type: string
+      default:
+        condition: >-
+          dark on 256-color or higher terminals. 16 (base16) when
+          TERM contains '16' or environment hints at base16.
+          bw when NO_COLOR is set.
+        values: [dark, light, 16, bw]
+      value:
+        type: string
+        description: >-
+          Base scheme (dark|light|16|bw) optionally followed by
+          comma-separated color assignments (e.g. fg:15,bg:-1,hl:10).
+
+    no-bold:
+      description: Do not use bold text.
+      aliases: [--no-bold]
+      required: false
+      type: boolean
+      default: false
+
+    black:
+      description: Use black background.
+      aliases: [--black]
+      required: false
+      type: boolean
+      default: false
+
+  # ===========================================================================
+  # Display Mode
+  # ===========================================================================
+  display:
+    height:
+      description: >-
+        Display fzf window with given height below the cursor instead of
+        fullscreen. Prefix ~ for auto-fit to input size, - for terminal
+        height minus value. Suffix % for percentage.
+      aliases: [--height]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: null (unset)
+          then: fullscreen mode
+
+    min-height:
+      description: >-
+        Minimum height when --height is given as percentage or ~ prefix.
+        Suffix + means minimum plus one additional line for info.
+      aliases: [--min-height]
+      required: false
+      type: string
+      default: "10+"
+      conditions:
+        - if: height is not set
+          then: ignored
+
+    popup:
+      description: >-
+        Start fzf in a popup window. Requires tmux 3.3+ or Zellij 0.44+.
+        Position can be center, top, bottom, left, right with optional size.
+      aliases: [--popup]
+      required: false
+      type: string
+      default: null
+
+    tmux:
+      description: Alias for --popup.
+      aliases: [--tmux]
+      required: false
+      type: string
+      default: null
+
+  # ===========================================================================
+  # Layout
+  # ===========================================================================
+  layout:
+    layout:
+      description: Choose layout of the finder.
+      aliases: [--layout]
+      required: false
+      type: enum
+      default: default
+      value:
+        type: enum
+        values:
+          default:
+            description: Prompt at the bottom, list grows upward from bottom.
+          reverse:
+            description: Prompt at the top, list grows downward. Same as --reverse.
+          reverse-list:
+            description: Prompt at the bottom, list grows downward from top.
+
+    reverse:
+      description: Synonym for --layout=reverse.
+      aliases: [--reverse]
+      required: false
+      type: boolean
+      default: false
+      effects:
+        - layout=reverse
+
+    margin:
+      description: >-
+        Comma-separated screen margin values (TRBL, TB/RL, T/RL/B, or
+        T/R/B/L). Each value can be absolute or percentage.
+      aliases: [--margin]
+      required: false
+      type: string
+      default: "0"
+
+    padding:
+      description: Padding inside the border. Same format as --margin.
+      aliases: [--padding]
+      required: false
+      type: string
+      default: "0"
+
+    border:
+      description: Draw border around the fzf finder.
+      aliases: [--border]
+      required: false
+      type: enum
+      default: rounded
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners (default).
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          block:
+            description: Block drawing characters.
+          thinblock:
+            description: Thin block drawing characters.
+          horizontal:
+            description: Horizontal lines only.
+          vertical:
+            description: Vertical lines only.
+          line:
+            description: Single line (position auto-determined by layout).
+          top:
+            description: Top border only.
+          bottom:
+            description: Bottom border only.
+          left:
+            description: Left border only.
+          right:
+            description: Right border only.
+          none:
+            description: No border.
+
+    border-label:
+      description: Label string to print on the border.
+      aliases: [--border-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: border=none
+          then: label is not displayed
+
+    border-label-pos:
+      description: >-
+        Position of the border label. Positive integer from left,
+        negative from right. Suffix :bottom for bottom border.
+      aliases: [--border-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: border-label is not set
+          then: ignored
+
+  # ===========================================================================
+  # List Section
+  # ===========================================================================
+  list:
+    multi:
+      description: >-
+        Enable multi-select with tab/shift-tab. Optional integer MAX
+        limits number of selections.
+      aliases: [-m, --multi]
+      required: false
+      type: integer
+      default: false
+      negate: [+m, --no-multi]
+
+    highlight-line:
+      description: Highlight the whole current line.
+      aliases: [--highlight-line]
+      required: false
+      type: boolean
+      default: false
+
+    cycle:
+      description: Enable cyclic scroll (wraps around at beginning/end of list).
+      aliases: [--cycle]
+      required: false
+      type: boolean
+      default: false
+
+    wrap:
+      description: Enable line wrapping for long lines.
+      aliases: [--wrap]
+      required: false
+      type: enum
+      default: false
+      value:
+        type: enum
+        values:
+          char:
+            description: Character-level wrapping (default when --wrap given without argument).
+          word:
+            description: Word-level wrapping.
+      negate: [--no-wrap]
+
+    wrap-sign:
+      description: Indicator string displayed at the beginning of wrapped lines.
+      aliases: [--wrap-sign]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u21b3 ", "> "]
+
+    no-multi-line:
+      description: >-
+        Disable multi-line display of items. Only relevant when --read0
+        provides multi-line items.
+      aliases: [--no-multi-line]
+      required: false
+      type: boolean
+      default: false
+      conditions:
+        - if: read0=false
+          then: no effect
+
+    raw:
+      description: >-
+        Enable raw mode. Non-matching items are shown dimmed rather than
+        hidden. Pointer shows match status indicator.
+      aliases: [--raw]
+      required: false
+      type: boolean
+      default: false
+
+    track:
+      description: >-
+        Track the current item when the result list is updated (e.g. after
+        reload). Useful to keep focus on same logical item across reloads.
+      aliases: [--track]
+      required: false
+      type: boolean
+      default: false
+
+    id-nth:
+      description: >-
+        Field index expressions defining item identity for cross-reload
+        operations. When set, fzf uses these fields to track items across
+        reload rather than the full line content.
+      aliases: [--id-nth]
+      required: false
+      type: string
+      default: null
+
+    tac:
+      description: Reverse the order of the input (last item appears first).
+      aliases: [--tac]
+      required: false
+      type: boolean
+      default: false
+
+    gap:
+      description: Render N empty lines between each item.
+      aliases: [--gap]
+      required: false
+      type: integer
+      default: 0
+
+    gap-line:
+      description: >-
+        String to fill horizontal gap lines between items. Only relevant
+        when --gap is set.
+      aliases: [--gap-line]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u2508", "-"]
+      conditions:
+        - if: gap=0
+          then: ignored
+
+    freeze-left:
+      description: Number of left-side fields to freeze (always visible on horizontal scroll).
+      aliases: [--freeze-left]
+      required: false
+      type: integer
+      default: null
+
+    freeze-right:
+      description: Number of right-side fields to freeze.
+      aliases: [--freeze-right]
+      required: false
+      type: integer
+      default: null
+
+    keep-right:
+      description: Keep the right end of the line visible when it overflows.
+      aliases: [--keep-right]
+      required: false
+      type: boolean
+      default: false
+
+    scroll-off:
+      description: Number of screen lines to keep above and below the cursor when scrolling.
+      aliases: [--scroll-off]
+      required: false
+      type: integer
+      default: 3
+
+    hscroll:
+      description: Enable horizontal scroll.
+      aliases: [--hscroll]
+      required: false
+      type: boolean
+      default: true
+      negate: [--no-hscroll]
+
+    hscroll-off:
+      description: >-
+        Number of screen columns to keep to the right of the highlighted
+        substring during horizontal scroll.
+      aliases: [--hscroll-off]
+      required: false
+      type: integer
+      default: 10
+
+    jump-labels:
+      description: >-
+        Characters used for jump and jump-accept actions. Each character
+        labels a visible item for quick selection.
+      aliases: [--jump-labels]
+      required: false
+      type: string
+      default: null
+
+    pointer:
+      description: Pointer character for the current line.
+      aliases: [--pointer]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u258c", ">"]
+
+    marker:
+      description: Multi-select marker character.
+      aliases: [--marker]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u2503", ">"]
+
+    marker-multi-line:
+      description: >-
+        Multi-line marker (3 characters: top, middle, bottom).
+        Used to visually indicate multi-line selected items.
+      aliases: [--marker-multi-line]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u257b\u2503\u2579", ".|'"]
+
+    gutter:
+      description: Character for the gutter column (left edge indicator area).
+      aliases: [--gutter]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u258c", ">"]
+
+    gutter-raw:
+      description: Gutter character in raw mode for non-matching items.
+      aliases: [--gutter-raw]
+      required: false
+      type: string
+      default: "\u2596"
+
+    ellipsis:
+      description: Ellipsis string to show when a line is truncated.
+      aliases: [--ellipsis]
+      required: false
+      type: string
+      default: "\u00b7\u00b7"
+
+    tabstop:
+      description: Number of spaces for a tab character.
+      aliases: [--tabstop]
+      required: false
+      type: integer
+      default: 8
+
+    scrollbar:
+      description: >-
+        Scrollbar character(s). First character for list scrollbar, optional
+        second character for preview scrollbar.
+      aliases: [--scrollbar]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u2502", ":"]
+      negate: [--no-scrollbar]
+
+    list-border:
+      description: Draw border around the list section.
+      aliases: [--list-border]
+      required: false
+      type: enum
+      default: null
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          block:
+            description: Block drawing characters.
+          thinblock:
+            description: Thin block drawing characters.
+          horizontal:
+            description: Horizontal lines only.
+          vertical:
+            description: Vertical lines only.
+          top:
+            description: Top border only.
+          bottom:
+            description: Bottom border only.
+          left:
+            description: Left border only.
+          right:
+            description: Right border only.
+          none:
+            description: No border.
+
+    list-label:
+      description: Label string to print on the list border.
+      aliases: [--list-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: list-border is not set or none
+          then: label is not displayed
+
+    list-label-pos:
+      description: Position of the list label.
+      aliases: [--list-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: list-label is not set
+          then: ignored
+
+  # ===========================================================================
+  # Input Section
+  # ===========================================================================
+  input:
+    no-input:
+      description: Disable and hide the input section entirely.
+      aliases: [--no-input]
+      required: false
+      type: boolean
+      default: false
+
+    prompt:
+      description: Input prompt string displayed before the query.
+      aliases: [--prompt]
+      required: false
+      type: string
+      default: "> "
+
+    info:
+      description: Finder info display style (match count, total count, etc.).
+      aliases: [--info]
+      required: false
+      type: enum
+      default: default
+      value:
+        type: enum
+        values:
+          default:
+            description: Display info on the left side of the separator line.
+          right:
+            description: Display info on the right side of the separator line.
+          hidden:
+            description: Do not show finder info.
+          inline:
+            description: Display info next to the prompt with default separator.
+          inline-right:
+            description: Display info at the right end of the prompt line.
+      negate: [--no-info]
+
+    info-command:
+      description: >-
+        Command to generate the info line. Receives FZF_INFO as env var
+        containing the original info text. Output replaces the info line.
+      aliases: [--info-command]
+      required: false
+      type: string
+      default: null
+
+    separator:
+      description: >-
+        String used to draw the horizontal separator line between input
+        and list. Supports ANSI color codes. Empty string disables it.
+      aliases: [--separator]
+      required: false
+      type: string
+      default:
+        condition: Unicode support detection.
+        values: ["\u2500", "-"]
+      negate: [--no-separator]
+
+    ghost:
+      description: Ghost text displayed when the input query is empty.
+      aliases: [--ghost]
+      required: false
+      type: string
+      default: null
+
+    filepath-word:
+      description: >-
+        Make word-jump (alt-b, alt-f, etc.) and word-delete (alt-bs,
+        alt-d) respect path separators.
+      aliases: [--filepath-word]
+      required: false
+      type: boolean
+      default: false
+
+    input-border:
+      description: Draw border around the input section.
+      aliases: [--input-border]
+      required: false
+      type: enum
+      default: null
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          block:
+            description: Block drawing characters.
+          thinblock:
+            description: Thin block drawing characters.
+          none:
+            description: No border.
+
+    input-label:
+      description: Label string to print on the input border.
+      aliases: [--input-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: input-border is not set or none
+          then: label is not displayed
+
+    input-label-pos:
+      description: Position of the input label.
+      aliases: [--input-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: input-label is not set
+          then: ignored
+
+  # ===========================================================================
+  # Preview Window
+  # ===========================================================================
+  preview:
+    preview:
+      description: >-
+        Command to preview the highlighted line. Supports placeholder
+        expressions: {} (line), {+} (selected), {q} (query),
+        {n} (index), and field expressions ({1}, {2..}, etc.).
+      aliases: [--preview]
+      required: false
+      type: string
+      default: null
+
+    preview-window:
+      description: >-
+        Preview window layout. Comma-separated list of options:
+        position (up|down|left|right), size, [no]wrap, [no]follow,
+        [no]cycle, [no]hidden, border-STYLE, +SCROLL[/DENOM],
+        ~HEADER_LINES, <SIZE_THRESHOLD(ALT_LAYOUT).
+      aliases: [--preview-window]
+      required: false
+      type: string
+      default: "right:50%"
+
+    preview-border:
+      description: Border style for the preview window.
+      aliases: [--preview-border]
+      required: false
+      type: enum
+      default: rounded
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          block:
+            description: Block drawing characters.
+          thinblock:
+            description: Thin block drawing characters.
+          none:
+            description: No border.
+
+    preview-label:
+      description: Label on the preview border.
+      aliases: [--preview-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: preview-border=none
+          then: label is not displayed
+
+    preview-label-pos:
+      description: Position of the preview label.
+      aliases: [--preview-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: preview-label is not set
+          then: ignored
+
+    preview-wrap-sign:
+      description: Wrapped line indicator in preview window.
+      aliases: [--preview-wrap-sign]
+      required: false
+      type: string
+      default:
+        condition: Inherits from --wrap-sign if not set.
+        values: null
+
+  # ===========================================================================
+  # Header
+  # ===========================================================================
+  header:
+    header:
+      description: >-
+        String to print as a sticky header. ANSI color codes supported.
+        Newlines in the string create multi-line headers.
+      aliases: [--header]
+      required: false
+      type: string
+      default: null
+
+    header-lines:
+      description: >-
+        Number of lines from the input to treat as a sticky header.
+        These lines are always visible and not searchable.
+      aliases: [--header-lines]
+      required: false
+      type: integer
+      default: 0
+
+    header-first:
+      description: Print header before the prompt line.
+      aliases: [--header-first]
+      required: false
+      type: boolean
+      default: false
+
+    header-border:
+      description: Border around the header section.
+      aliases: [--header-border]
+      required: false
+      type: enum
+      default: null
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          block:
+            description: Block drawing characters.
+          thinblock:
+            description: Thin block drawing characters.
+          none:
+            description: No border.
+
+    header-lines-border:
+      description: Separate border specifically for header lines (--header-lines).
+      aliases: [--header-lines-border]
+      required: false
+      type: enum
+      default: null
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          none:
+            description: No border.
+
+    header-label:
+      description: Label on the header border.
+      aliases: [--header-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: header-border is not set or none
+          then: label is not displayed
+
+    header-label-pos:
+      description: Position of the header label.
+      aliases: [--header-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: header-label is not set
+          then: ignored
+
+  # ===========================================================================
+  # Footer
+  # ===========================================================================
+  footer:
+    footer:
+      description: String to print as a sticky footer. ANSI color codes supported.
+      aliases: [--footer]
+      required: false
+      type: string
+      default: null
+
+    footer-border:
+      description: Border around the footer section.
+      aliases: [--footer-border]
+      required: false
+      type: enum
+      default: line
+      value:
+        type: enum
+        values:
+          rounded:
+            description: Rounded corners.
+          sharp:
+            description: Sharp corners.
+          bold:
+            description: Bold lines.
+          double:
+            description: Double lines.
+          line:
+            description: Single line (default for footer).
+          none:
+            description: No border.
+
+    footer-label:
+      description: Label on the footer border.
+      aliases: [--footer-label]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: footer-border=none
+          then: label is not displayed
+
+    footer-label-pos:
+      description: Position of the footer label.
+      aliases: [--footer-label-pos]
+      required: false
+      type: string
+      default: "0"
+      conditions:
+        - if: footer-label is not set
+          then: ignored
+
+  # ===========================================================================
+  # Scripting
+  # ===========================================================================
+  scripting:
+    query:
+      description: Start the finder with the given query string.
+      aliases: [-q, --query]
+      required: false
+      type: string
+      default: null
+
+    select-1:
+      description: >-
+        Automatically select the item if there is only one match.
+        Exits immediately with that item.
+      aliases: [-1, --select-1]
+      required: false
+      type: boolean
+      default: false
+
+    exit-0:
+      description: >-
+        Exit immediately with exit code 0 when there is no match
+        for the initial query.
+      aliases: [-0, --exit-0]
+      required: false
+      type: boolean
+      default: false
+
+    filter:
+      description: >-
+        Filter mode. Operate as a non-interactive filter using the
+        given string as the query. Prints matching items to stdout
+        and exits.
+      aliases: [-f, --filter]
+      required: false
+      type: string
+      default: null
+      effects:
+        - non-interactive mode (no TUI displayed)
+
+    print-query:
+      description: Print the query as the first line of output.
+      aliases: [--print-query]
+      required: false
+      type: boolean
+      default: false
+
+    expect:
+      description: >-
+        Comma-separated list of keys that will cause fzf to complete
+        immediately when pressed. The key name is printed as the first
+        line of output (or second line if --print-query is also set).
+      aliases: [--expect]
+      required: false
+      type: string
+      default: null
+      negate: [--no-expect]
+
+    no-clear:
+      description: Do not clear the finder interface on exit.
+      aliases: [--no-clear]
+      required: false
+      type: boolean
+      default: false
+
+  # ===========================================================================
+  # Key/Event Bindings
+  # ===========================================================================
+  keybindings:
+    bind:
+      description: >-
+        Custom key/event bindings. Format: KEY:ACTION[+ACTION...] or
+        EVENT:ACTION[+ACTION...]. Multiple bindings separated by commas.
+        Events: start, load, result, focus, change, search, resize,
+        backward-eof, jump, jump-cancel, one, zero.
+      aliases: [--bind]
+      required: false
+      type: string
+      default: null
+
+  # ===========================================================================
+  # Directory Traversal (built-in walker)
+  # ===========================================================================
+  walker:
+    walker:
+      description: >-
+        Configure the built-in directory walker. Comma-separated flags
+        controlling which items to include.
+      aliases: [--walker]
+      required: false
+      type: list
+      default: "file,follow,hidden"
+      value:
+        type: enum
+        values:
+          file:
+            description: Include regular files.
+          dir:
+            description: Include directories.
+          follow:
+            description: Follow symbolic links.
+          hidden:
+            description: Include and follow hidden files and directories.
+
+    walker-root:
+      description: Root directory (or directories) for the built-in walker.
+      aliases: [--walker-root]
+      required: false
+      type: string
+      default: "."
+
+    walker-skip:
+      description: >-
+        Comma-separated list of directory names to skip during traversal.
+      aliases: [--walker-skip]
+      required: false
+      type: string
+      default: ".git,node_modules"
+
+  # ===========================================================================
+  # History
+  # ===========================================================================
+  history:
+    history:
+      description: >-
+        History file path. When set, ctrl-p and ctrl-n navigate search
+        history. The file is updated on exit.
+      aliases: [--history]
+      required: false
+      type: string
+      default: null
+
+    history-size:
+      description: Maximum number of entries in the history file.
+      aliases: [--history-size]
+      required: false
+      type: integer
+      default: 1000
+      conditions:
+        - if: history is not set
+          then: ignored
+
+  # ===========================================================================
+  # Mouse
+  # ===========================================================================
+  mouse:
+    mouse:
+      description: Enable mouse support.
+      aliases: [--mouse]
+      required: false
+      type: boolean
+      default: true
+      negate: [--no-mouse]
+
+  # ===========================================================================
+  # Unicode
+  # ===========================================================================
+  unicode:
+    unicode:
+      description: >-
+        Use Unicode drawing characters for borders, pointers, markers, etc.
+      aliases: [--unicode]
+      required: false
+      type: boolean
+      default: true
+      negate: [--no-unicode]
+      effects:
+        - >-
+          When disabled, falls back to ASCII characters for pointer (>),
+          marker (>), scrollbar (:), separator (-), etc.
+
+    ambidouble:
+      description: >-
+        Treat characters with ambiguous width (East Asian ambiguous) as
+        double-width. Useful for CJK terminals that render these characters
+        as two columns wide.
+      aliases: [--ambidouble]
+      required: false
+      type: boolean
+      default: false
+
+  # ===========================================================================
+  # Advanced
+  # ===========================================================================
+  advanced:
+    with-shell:
+      description: >-
+        Shell command used to execute child processes (preview, execute
+        actions, etc.).
+      aliases: [--with-shell]
+      required: false
+      type: string
+      default:
+        condition: "$SHELL -c on Unix if SHELL is set, otherwise sh -c. cmd /s/c on Windows."
+        values: ["$SHELL -c", "sh -c", "cmd /s/c"]
+
+    listen:
+      description: >-
+        Start an HTTP server for remote control. Accepts [ADDR:]PORT or
+        SOCKET_PATH (.sock suffix). Port 0 chooses random port exported
+        as FZF_PORT.
+      aliases: [--listen]
+      required: false
+      type: string
+      default: null
+      conditions:
+        - if: non-localhost address
+          then: requires FZF_API_KEY env var for authentication
+        - if: socket path (ends with .sock)
+          then: exported as FZF_SOCK instead of FZF_PORT
+
+    listen-unsafe:
+      description: >-
+        Like --listen but allows remote process execution (execute,
+        become, reload, transform, preview, change-preview).
+        Use only in trusted environments.
+      aliases: [--listen-unsafe]
+      required: false
+      type: string
+      default: null
+
+    threads:
+      description: Number of threads for the matcher.
+      aliases: [--threads]
+      required: false
+      type: integer
+      default:
+        condition: "min(8 * NUM_CPU, 32)"
